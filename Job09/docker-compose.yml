@@ -1,0 +1,41 @@
+# ==============================================================================
+# Job 09 : Registre Docker privé local avec interface Web
+# ==============================================================================
+
+services:
+  # 1. Moteur du registre d'images privé (Docker Registry v2)
+  registry:
+    image: registry:2
+    container_name: job09-registry
+    restart: unless-stopped
+    ports:
+      # Port d'écoute standard pour l'API du registre Docker
+      - "5000:5000"
+    environment:
+      # Autorise la suppression d'images depuis l'interface ou l'API REST
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    volumes:
+      # Volume persistant stockant les couches d'images poussées
+      - registry-data:/var/lib/registry
+
+  # 2. Interface utilisateur Web pour naviguer dans le catalogue
+  ui:
+    image: joxit/docker-registry-ui:latest
+    container_name: job09-ui
+    restart: unless-stopped
+    ports:
+      # Port exposé pour accéder au dashboard web depuis le navigateur
+      - "8082:80"
+    environment:
+      # Configuration pour piloter un registre unique
+      SINGLE_REGISTRY: "true"
+      # Active les boutons de suppression d'images dans l'UI
+      DELETE_IMAGES: "true"
+      # URL interne sur le réseau Docker permettant à l'UI de requêter le service 'registry'
+      NGINX_PROXY_PASS_URL: http://registry:5000
+    depends_on:
+      - registry
+
+# Déclaration du volume managé pour la persistance des images enregistrées
+volumes:
+  registry-data:
