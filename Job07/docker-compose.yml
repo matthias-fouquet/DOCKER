@@ -1,0 +1,40 @@
+# ==============================================================================
+# Job 07 : Stack Web Nginx + Serveur FTP avec volume partagé
+# ==============================================================================
+
+services:
+  # 1. Service Web : Nginx servant les fichiers HTML
+  web:
+    image: nginx:latest
+    container_name: job07-web
+    restart: unless-stopped
+    ports:
+      # Redirige le port 8080 de la machine hôte vers le port 80 interne de Nginx
+      - "8080:80"
+    volumes:
+      # Monte le volume partagé 'web-content' dans le répertoire racine web de Nginx
+      - web-content:/usr/share/nginx/html
+
+  # 2. Service FTP : serveur Alpine FTP compatible multi-architectures (x86_64 et ARM64)
+  ftp:
+    image: delfer/alpine-ftp-server:latest
+    container_name: job07-ftp
+    restart: unless-stopped
+    ports:
+      # Port de contrôle standard du protocole FTP
+      - "21:21"
+      # Plage de ports réservée au mode passif (PASV) pour le transfert des flux de données
+      - "21100-21110:21100-21110"
+    environment:
+      # Identifiants du compte FTP sous le format : utilisateur|motdepasse
+      USERS: "matthias|password123"
+      # Configuration de la plage de ports passifs pour correspondre aux redirections d'hôte
+      MIN_PORT: 21100
+      MAX_PORT: 21110
+    volumes:
+      # Monte le même volume 'web-content' dans le répertoire personnel de l'utilisateur FTP
+      - web-content:/ftp/matthias
+
+# Déclaration du volume managé par Docker partagé entre les deux conteneurs
+volumes:
+  web-content:
